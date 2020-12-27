@@ -8,34 +8,39 @@ import os
 def getColNames(sheet):
     global startPointRow
     global startPointCol
+    global colValuesPSValue
     rowSize = sheet.row_len(0)
     collen = len(sheet.col_values(0))
     for i in range(rowSize):
         colValue = sheet.col_values(i)
         for index, value in enumerate(colValue):
-            if value == '事件編號':
+            if value == 'ID':
                 startPointCol = i
                 startPointRow = index
+                break
     
     colValues = sheet.row_values(startPointRow, startPointCol, rowSize )
+    colValuesPSValue = sheet.row_values(startPointRow + 2, startPointCol, rowSize )
     columnNames = []
 
-    for value in colValues:
-        columnNames.append(value)
-    print(columnNames)
+    for index, value in enumerate( colValues ):
+        if(colValuesPSValue[index] != 'PS' and colValuesPSValue[index] != 'S'):
+            columnNames.append(value)
     return columnNames
 
 def getRowData(row, columnNames):
     rowData = {}
     counter = 0
+    dataIndex = 0
 
-    print(len(row))
     for index, cell in enumerate(row):
         # check if it is of date type print in iso format
-        if cell.ctype==xlrd.XL_CELL_DATE:
-            rowData[columnNames[counter].lower().replace(' ', '_')] = datetime.datetime(*xlrd.xldate_as_tuple(cell.value,0)).isoformat()
-        else:
-            rowData[columnNames[counter].lower().replace(' ', '_')] = cell.value
+        if(colValuesPSValue[counter]!= 'PS' and colValuesPSValue[index] != 'S'):
+            if cell.ctype==xlrd.XL_CELL_DATE:
+                rowData[columnNames[dataIndex].replace(' ', '_')] = datetime.datetime(*xlrd.xldate_as_tuple(cell.value,0)).isoformat()
+            else:
+                rowData[columnNames[dataIndex].replace(' ', '_')] = cell.value
+            dataIndex += 1
         counter +=1
 
     return rowData
@@ -71,7 +76,7 @@ def main(filename):
         workbook = xlrd.open_workbook(filename)
         workbookdata = getWorkBookData(workbook)
         output =         open((filename.replace("xlsx", "json")).replace("xls", "json"), "w+")
-        output.write(json.dumps(workbookdata, sort_keys=True, indent=2,  separators=(',', ": ")))
+        output.write(json.dumps(workbookdata, sort_keys=False, indent=2,  separators=(',', ": ")))
         output.close()
         print ("%s was created" %output.name)
     else:
