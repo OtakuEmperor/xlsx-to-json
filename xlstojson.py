@@ -4,6 +4,7 @@ import json
 import os.path
 import datetime
 import os
+import re
 
 def getColNames(sheet):
     global startPointRow
@@ -15,12 +16,14 @@ def getColNames(sheet):
         colValue = sheet.col_values(i)
         for index, value in enumerate(colValue):
             if value == 'ID':
+                trueStartPointRow = index
                 startPointCol = i
-                startPointRow = index
+                startPointRow = int(index)
                 break
     
     colValues = sheet.row_values(startPointRow, startPointCol, rowSize )
-    colValuesPSValue = sheet.row_values(startPointRow + 2, startPointCol, rowSize )
+    print(colValues)
+    colValuesPSValue = sheet.row_values(trueStartPointRow + 2, startPointCol, rowSize )
     columnNames = []
 
     for index, value in enumerate( colValues ):
@@ -50,7 +53,7 @@ def getSheetData(sheet, columnNames):
     sheetData = []
     counter = 1
 
-    for idx in range(startPointRow, nRows):
+    for idx in range(startPointRow+3, nRows):
         row = sheet.row(idx)
         rowData = getRowData(row, columnNames)
         sheetData.append(rowData)
@@ -61,23 +64,33 @@ def getWorkBookData(workbook):
     nsheets = workbook.nsheets
     counter = 0
     workbookdata = {}
+    global colNames
+    colNames = []
 
     for idx in range(0, nsheets):
         worksheet = workbook.sheet_by_index(idx)
         if(worksheet.name.startswith("$")):
+            colNames.append(str(worksheet.name))
             columnNames = getColNames(worksheet)
             sheetdata = getSheetData(worksheet, columnNames)
             workbookdata[worksheet.name.lower().replace(' ', '_')] = sheetdata
+            GeneJsonFile(worksheet.name.lower(), workbookdata)
 
-    return workbookdata
+def GeneJsonFile(name, data):
+    output = open(name.replace("$","") +".json", "w+")
+    tmpString = json.dumps(data, sort_keys=False, indent=2,  separators=(',', ": "))
+    for name in colNames:
+        replaceString = "\\"+str(name).lower();
+        newstring = re.sub(replaceString, "singleSheet", tmpString)
+    print(newstring)
+    output.write(newstring)
+    output.close()
 
 def main(filename):
     if os.path.isfile(filename):
         workbook = xlrd.open_workbook(filename)
         workbookdata = getWorkBookData(workbook)
-        output =         open((filename.replace("xlsx", "json")).replace("xls", "json"), "w+")
-        output.write(json.dumps(workbookdata, sort_keys=False, indent=2,  separators=(',', ": ")))
-        output.close()
+
         print ("%s was created" %output.name)
     else:
         print ("Sorry, that was not a valid filename")
