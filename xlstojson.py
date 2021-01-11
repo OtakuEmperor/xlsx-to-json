@@ -15,14 +15,13 @@ def getColNames(sheet):
     for i in range(rowSize):
         colValue = sheet.col_values(i)
         for index, value in enumerate(colValue):
-            if value == 'ID':
+            if value == 'ID' or value == "id":
                 trueStartPointRow = index
                 startPointCol = i
                 startPointRow = int(index)
                 break
     
     colValues = sheet.row_values(startPointRow, startPointCol, rowSize )
-    print(colValues)
     colValuesPSValue = sheet.row_values(trueStartPointRow + 2, startPointCol, rowSize )
     columnNames = []
 
@@ -63,13 +62,13 @@ def getSheetData(sheet, columnNames):
 def getWorkBookData(workbook):
     nsheets = workbook.nsheets
     counter = 0
-    workbookdata = {}
     global colNames
-    colNames = []
 
     for idx in range(0, nsheets):
         worksheet = workbook.sheet_by_index(idx)
         if(worksheet.name.startswith("$")):
+            colNames = []
+            workbookdata = {}
             colNames.append(str(worksheet.name))
             columnNames = getColNames(worksheet)
             sheetdata = getSheetData(worksheet, columnNames)
@@ -82,7 +81,6 @@ def GeneJsonFile(name, data):
     for name in colNames:
         replaceString = "\\"+str(name).lower();
         newstring = re.sub(replaceString, "singleSheet", tmpString)
-    print(newstring)
     output.write(newstring)
     output.close()
 
@@ -91,7 +89,7 @@ def main(filename):
         workbook = xlrd.open_workbook(filename)
         workbookdata = getWorkBookData(workbook)
 
-        print ("%s was created" %output.name)
+        print ("%s was created" %filename)
     else:
         print ("Sorry, that was not a valid filename")
 
